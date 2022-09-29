@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: laravel-www-config
+data:
+  default.conf: |
+    server {
+      server_name _;
+
+      if ($http_x_forwarded_proto = "http") {
+        return 301 https://www.laravelwebsite.com$request_uri;
+      }
+
+      if ($host = "laravelwebsite.com") {
+        return 301 https://www.laravelwebsite.com$request_uri;
+      }
+
+      root /var/www/html/public;
+
+      index index.php;
+
+      set_real_ip_from INSERT_CIDR_RANGE_OF_CLOUD_LOAD_BALANCER_IPS;
+      set_real_ip_from INSERT_CIDR_RANGE_OF_CLOUD_LOAD_BALANCER_IPS;
+      real_ip_header X-Forwarded-For;
+
+      add_header X-Frame-Options "SAMEORIGIN";
+      add_header X-XSS-Protection "1; mode=block";
+      add_header X-Content-Type-Options "nosniff";
+
+      gzip on;
+      gzip_comp_level 6;
+      gzip_proxied any;
+      gzip_types
+        text/css
+        text/xml
+        text/plain
+        application/javascript
+        application/x-javascript
+        application/pdf
+        application/json
+        application/octet-stream;
+      gzip_vary on;
+
+      location / {
+        try_files $uri $uri/ /index.php?$args;
+      }
+
+      location = /favicon.png { log_not_found off; access_log off; }
+      location = /robots.txt { log_not_found off; access_log off; }
+
+      error_page 404 /index.php;
+
+      location ~ \.php$ {
+          include fastcgi.conf;
+          fastcgi_pass 127.0.0.1:9000;
+      }
+
+      location ~ /\.(?!well-known).* {
+          deny all;
+      }
+    }

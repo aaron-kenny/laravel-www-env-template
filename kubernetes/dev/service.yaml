@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: laravel-www
+spec:
+  type: ClusterIP
+  selector:
+    app: laravel-www
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80

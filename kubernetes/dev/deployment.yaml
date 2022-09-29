@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: laravel-www
+spec:
+  selector:
+    matchLabels:
+      app: laravel-www
+  template:
+    metadata:
+      labels:
+        app: laravel-www
+    spec:
+      initContainers:
+      - name: init-static-content-volume
+        image: laravel-www
+        envFrom:
+        - secretRef:
+            name: laravel-www-env
+        volumeMounts:
+        - name: laravel-www-static-content
+          mountPath: /static-content
+        command: ['cp', '-a', '/var/www/html/public/.', '/static-content/public' ]
+      containers:
+      - name: laravel
+        image: laravel-www
+        resources:
+          requests:
+            cpu: 10m
+            memory: 20M
+          limits:
+            cpu: 400m
+            memory: 400M
+        envFrom:
+        - secretRef:
+            name: laravel-www-env
+      - name: laravel-queue
+        image: laravel-www
+        resources:
+          requests:
+            cpu: 10m
+            memory: 20M
+          limits:
+            cpu: 400m
+            memory: 400M
+        envFrom:
+        - secretRef:
+            name: laravel-www-env
+        command: ['/bin/sh']
+        args: ['-c', 'php artisan queue:work --verbose --tries=3 --timeout=90']
+      - name: nginx
+        image: nginx:1.19.3-alpine
+        resources:
+          requests:
+            cpu: 10m
+            memory: 20M
+          limits:
+            cpu: 400m
+            memory: 400M
+        volumeMounts:
+          - name: laravel-www-static-content
+            mountPath: /var/www/html
+          - name: laravel-www-config
+            mountPath: /etc/nginx/conf.d/default.conf
+            subPath: default.conf
+      volumes:
+      - name: laravel-www-static-content
+        emptyDir: {}
+      - name: laravel-www-config
+        configMap:
+          name: laravel-www-config
